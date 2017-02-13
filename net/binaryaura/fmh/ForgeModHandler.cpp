@@ -4,70 +4,97 @@
  */
 
 #include <ncurses.h>
+#include <iostream>
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
-WINDOW *create_newwin(int height, int width, int starty, int startx);
-void destroy_win(WINDOW *local_win);
+using namespace std;
+
+#define WIDTH 30
+#define HEIGHT 10
+
+int startx = 0;
+int starty = 0;
+
+char *choices[] = { "Create", "Import", "Manage", "Options", "Quit"};
+
+int n_choices = sizeof(choices) / sizeof(char *);
+void print_menu(WINDOW *menu_win, int highlight);
 
 int main()
 {
-  WINDOW *my_win;
-  int startx, starty, width, height;
-  int ch;
+  WINDOW *menu_win;
+  int highlight = 1;
+  int choice = 0;
+  int c;
 
   initscr();
+  clear();
+  noecho();
   cbreak();
+  startx = (80 - WIDTH)/2;
+  starty = (24 - HEIGHT)/2;
 
-  keypad(stdscr, TRUE);
-
-  height = 3;
-  width = 10;
-  starty = (LINES - height)/2;
-  startx = (COLS - width)/2;
-  printw("Press F1 to exit");
+  menu_win = newwin(HEIGHT, WIDTH, starty, startx);
+  keypad(menu_win, true);
+  mvprintw(0, 0, "Use arrow keys to go up and down, Press enter to select a choice");
   refresh();
-  my_win = create_newwin(height, width, starty, startx);
-
-  while((ch = getch()) != KEY_F(1))
+  print_menu(menu_win, highlight);
+  while(true)
   {
-	  switch(ch)
-	  {
-	    case KEY_LEFT:
-	      destroy_win(my_win);
-	      my_win = create_newwin(height, width, starty, --startx);
-	      break;
-	    case KEY_RIGHT:
-	      destroy_win(my_win);
-	      my_win = create_newwin(height, width, starty, ++startx);
-	      break;
-	    case KEY_UP:
-        destroy_win(my_win);
-        my_win = create_newwin(height, width, --starty, startx);
+    c = wgetch(menu_win);
+    switch(c)
+    {
+      case KEY_UP:
+        if(highlight == 1)
+          highlight = n_choices;
+        else
+          --highlight;
         break;
       case KEY_DOWN:
-        destroy_win(my_win);
-        my_win = create_newwin(height, width, ++starty, startx);
+        if(highlight == n_choices)
+          highlight = 1;
+        else
+          ++highlight;
         break;
-	  }
+      case 10:
+        choice = highlight;
+        break;
+      default:
+        mvprintw(24, 0, "Character press is = %3d Hopefully it can be printed a '%c'", c, c);
+        refresh();
+        break;
+    }
+    print_menu(menu_win, highlight);
+    if(choice != 0)
+      break;
   }
-
+  mvprintw(23, 0, "You chose %s\n", choices[choice - 1]);
+  clrtoeol();
+  refresh();
+  getch();
   endwin();
   return 0;
 }
 
-WINDOW *create_newwin(int height, int width, int starty, int startx)
+void print_menu(WINDOW *menu_win, int highlight)
 {
-  WINDOW *local_win;
+  int x, y, i;
 
-  local_win = newwin(height, width, starty, startx);
-  box(local_win, 0, 0);
-  wrefresh(local_win);
-  return local_win;
-}
-
-void destroy_win(WINDOW *local_win)
-{
-  wborder(local_win, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
-  wrefresh(local_win);
-  delwin(local_win);
+  x = 2;
+  y = 2;
+  box(menu_win, 0, 0);
+  for(i = 0; i < n_choices; ++i)
+  {
+    if(highlight == i + 1)
+    {
+      wattron(menu_win, A_REVERSE);
+      mvwprintw(menu_win, y, x, "%s", choices[i]);
+      wattroff(menu_win, A_REVERSE);
+    } else
+      mvwprintw(menu_win, y, x, "%s", choices[i]);
+    ++y;
+  }
+  wrefresh(menu_win);
 }
