@@ -6,19 +6,68 @@
 #include <ncurses.h>
 #include <string.h>
 
+WINDOW *create_newwin(int height, int width, int starty, int startx);
+void destroy_win(WINDOW *local_win);
+
 int main()
 {
-  char mesg[] = "Just a string";
-  int row, col;
+  WINDOW *my_win;
+  int startx, starty, width, height;
+  int ch;
 
   initscr();
-  getmaxyx(stdscr, row, col);
-  mvprintw(row/2, (col-strlen(mesg))/2, "%s", mesg);
+  cbreak();
 
-  mvprintw(row-2, 0, "This screen has %d rows and %d columns\n", row, col);
+  keypad(stdscr, TRUE);
+
+  height = 3;
+  width = 10;
+  starty = (LINES - height)/2;
+  startx = (COLS - width)/2;
+  printw("Press F1 to exit");
   refresh();
-  getch();
-  endwin();
+  my_win = create_newwin(height, width, starty, startx);
 
+  while((ch = getch()) != KEY_F(1))
+  {
+	  switch(ch)
+	  {
+	    case KEY_LEFT:
+	      destroy_win(my_win);
+	      my_win = create_newwin(height, width, starty, --startx);
+	      break;
+	    case KEY_RIGHT:
+	      destroy_win(my_win);
+	      my_win = create_newwin(height, width, starty, ++startx);
+	      break;
+	    case KEY_UP:
+        destroy_win(my_win);
+        my_win = create_newwin(height, width, --starty, startx);
+        break;
+      case KEY_DOWN:
+        destroy_win(my_win);
+        my_win = create_newwin(height, width, ++starty, startx);
+        break;
+	  }
+  }
+
+  endwin();
   return 0;
+}
+
+WINDOW *create_newwin(int height, int width, int starty, int startx)
+{
+  WINDOW *local_win;
+
+  local_win = newwin(height, width, starty, startx);
+  box(local_win, 0, 0);
+  wrefresh(local_win);
+  return local_win;
+}
+
+void destroy_win(WINDOW *local_win)
+{
+  wborder(local_win, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+  wrefresh(local_win);
+  delwin(local_win);
 }
